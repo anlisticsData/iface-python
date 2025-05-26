@@ -1,0 +1,28 @@
+ new_employee = {
+        'autorized': 1,
+        'employees_code': 'EMP001',
+        'fullname': 'John Doe',
+        'rg': '1234567',
+        'cpf': '000.000.000-00',
+        'controller_code': 'CTRL123',
+        'company_join': '2023-01-01',
+        'remote_event_code': 'EVT-456',
+        'remote_uuid': 'uuid-1234-5678',
+        'data_bloqueio_liberacao': '2025-05-26',
+        'deleted_at': None,
+        'iface': 'Y'
+    }
+
+    employee_id = EmployeeDAO.create(new_employee)
+    print(f"Employee created with ID: {employee_id}")
+
+    # READ
+    employee = EmployeeDAO.read(employee_id)
+    print("Employee data:", employee)
+
+    # UPDATE
+    updated_fields = {'fullname': 'John Updated', 'cpf': '111.111.111-11'}
+    EmployeeDAO.update(employee_id, updated_fields)
+
+    # DELETE
+    EmployeeDAO.delete(employee_id)

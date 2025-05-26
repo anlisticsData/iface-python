@@ -5,12 +5,16 @@ import core.RemoteConnect as rpc
 from core.Company import Company
 from configparser import ConfigParser
 
+from core.dao.employee_dao import EmployeeDAO
+
 
 def face_download_worker():
     print('Hello world')
     config_path = "config.ini"
     config = ConfigParser()
     config.read(config_path)
+
+
 
     while True:
         try:
@@ -30,6 +34,16 @@ def face_download_worker():
 
 
 if __name__ == '__main__':
+    print("Hello world")
+
+
+
+
+
+
+    '''
+    
+  
     thread = threading.Thread(target=face_download_worker)
     thread.daemon = True  # Encerra a thread se o programa principal for finalizado
     thread.start()
@@ -40,3 +54,6 @@ if __name__ == '__main__':
             time.sleep(1)
     except KeyboardInterrupt:
         print("Encerrando aplicação...")
+
+
+'''
