@@ -1,10 +1,15 @@
 import time
 import threading
+from datetime import datetime
+
 import requests
 import core.RemoteConnect as rpc
 from core.Company import Company
 from configparser import ConfigParser
 
+from core.dao.EmployeesHistoryDAO import EmployeesHistoryDAO
+from core.dao.EmployeesUpdateDAO import EmployeesUpdateDAO
+from core.dao.SettingsDAO import SettingsDAO
 from core.dao.employee_dao import EmployeeDAO
 
 
@@ -35,6 +40,17 @@ def face_download_worker():
 
 if __name__ == '__main__':
     print("Hello world")
+    
+
+
+
+
+
+
+
+
+
+
 
 
 

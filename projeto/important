@@ -26,3 +26,119 @@
 
     # DELETE
     EmployeeDAO.delete(employee_id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /////////////////////
+
+
+     # CREATE
+    new_history = {
+        'employees_iface_id': 'iface-123',
+        'employees_remote_code': 'remote-456',
+        'remote_event_code': 'event-789',
+        'remote_uud': 'uuid-xyz',
+        'fullname': 'Jane Doe',
+        'company_join': '2024-01-01',
+        'readding': 'Entrada registrada',
+        'recordType': 1,
+        'process': datetime.now(),
+        'upload': 'N'
+    }
+
+    history_id = EmployeesHistoryDAO.create(new_history)
+    print(f"History record created with ID: {history_id}")
+
+    # READ
+    record = EmployeesHistoryDAO.read(history_id)
+    print("History record:", record)
+
+    # UPDATE
+    EmployeesHistoryDAO.update(history_id, {'upload': 'Y'})
+
+    # DELETE
+    EmployeesHistoryDAO.delete(history_id)
+
+
+
+
+
+    //////////////////////////////////////
+
+
+
+
+     # CREATE
+    new_update = {
+        'operacao': 'BLOQUEIO',
+        'codigo_funcionario': 'EMP123',
+        'data_bloqueio_liberacao': '2025-05-26',
+        'hash_64_dig_1': 'abc123hash1...',
+        'hash_64_dig_2': 'abc123hash2...',
+        'numero_cracha': '987654',
+        'codigo_bloqueio': 5,
+        'codigoObra': 101,
+        'employees_code': 2,
+        'deleted_at': None
+    }
+
+    update_id = EmployeesUpdateDAO.create(new_update)
+    print(f"Update record created with ID: {update_id}")
+
+    # READ
+    record = EmployeesUpdateDAO.read(update_id)
+    print("Update record:", record)
+
+    # UPDATE
+    EmployeesUpdateDAO.update(update_id, {'operacao': 'LIBERACAO', 'codigo_bloqueio': 0})
+
+    # DELETE
+    EmployeesUpdateDAO.delete(update_id)
+
+
+
+
+
+    ////////////////////////////////////
+
+
+
+
+
+      new_setting = {
+        'type': 'system',
+        'description': 'Max login attempts',
+        'paramets': 'max_attempts=5',
+        'json': '{"max_attempts":5}'
+    }
+    setting_id = SettingsDAO.create(new_setting)
+    print(f"Setting created with ID: {setting_id}")
+
+    # READ
+    setting = SettingsDAO.read(setting_id)
+    print("Setting:", setting)
+
+    # UPDATE
+    SettingsDAO.update(setting_id, {'description': 'Maximum login attempts allowed', 'paramets': 'max_attempts=10'})
+
+    # DELETE
+    SettingsDAO.delete(setting_id)
+
+
+
+
+
+
+
+
+
