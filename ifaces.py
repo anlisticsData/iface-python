@@ -12,6 +12,7 @@ from configparser import ConfigParser
 
 from core.UserDao import UserDao
 from core.dao.EmployeeUpdate import EmployeeUpdateAPIResponse
+from core.usecases.ByEmployeeActiveUseCase import ByEmployeeActiveUseCase
 from core.usecases.ByEmployeeDesactiveUseCase import ByEmployeeDesactiveUseCase
 from core.usecases.ByEmployyesUseCase import ByEmployyesUseCase
 from core.usecases.NewEmployyesUseCase import NewEmployyesUseCase
@@ -21,6 +22,8 @@ from core.usecases.NewEmployyesUseCase import NewEmployyesUseCase
 
 __STATE_INSERT='I'
 __STATE_DELETED='E'
+__STATE_UPDATE='A'
+
 __CONSTANT_OPERATION__="Operacao"
 
 
@@ -85,8 +88,13 @@ def face_download_worker():
 
 
                         if operation is not None and operation==__STATE_DELETED:
-                            #print('row=', row)
                             ByEmployeeDesactiveUseCase().execute(employee_data['id'])
+
+
+                        if operation is not None and operation==__STATE_UPDATE:
+                            ByEmployeeActiveUseCase().execute(employee_data['id'],row)
+
+
 
 
 
@@ -96,8 +104,9 @@ def face_download_worker():
 
 
 
+
                         uniques.append(unique)
-                    print(uniques)
+
                     response_update_employees=server.update_employee(uniques)
                     if response_update_employees is not None:
                         if response_update_employees['status'] == 200:

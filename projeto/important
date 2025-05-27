@@ -15,8 +15,9 @@ SELECT * FROM `Funcionarios` WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003'
 
 
 
-SELECT * FROM `Funcionarios` WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
+SELECT * FROM `FuncionariosAtualizacao` WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
 
+SELECT * FROM `Funcionarios` WHERE `CodigoEmpresa`=2 and `CodigoFilial`='003' and CodigoFuncionario=65;
 
 
 
@@ -25,6 +26,9 @@ update `FuncionariosAtualizacao` set Atualizar="Sim" WHERE  `CodigoEmpresa`=2 an
 
 update `FuncionariosAtualizacao` set Operacao='I', Atualizar="Sim" WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
 
+
+
+update `FuncionariosAtualizacao` set Operacao='A', Atualizar="Sim" WHERE `CodigoEmpresa`=2 and `CodigoFilial`='003' and `CodigoObra`=101;
 
 
 

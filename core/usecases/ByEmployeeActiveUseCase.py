@@ -2,8 +2,20 @@ from core.dao.employee_dao import EmployeeDAO
 
 
 class ByEmployeeActiveUseCase(object):
-    def execute(self,employee_id:int):
+    def execute(self,employee_id:int,employee:dict):
         try:
-            return EmployeeDAO.enabled(employee_id)
+            updated_fields = {
+                'employees_code': employee['CodigoFuncionario'],
+                'fullname': employee['NomeCompleto'],
+                'data_bloqueio_liberacao': employee['DataBloqueioLiberacao'],
+                'deleted_at': None,
+                'iface': 'Y' if employee.get('Foto') not in [None, ''] else 'N' if 'Foto' in employee else '',
+                'photo': employee['Foto'] if employee.get('Foto') not in [None,''] else None if 'Foto' in employee else None
+            }
+
+            if EmployeeDAO.update(employee_id, updated_fields):
+                return EmployeeDAO.enabled(employee_id)
+
+            return None
         except:
             return None
