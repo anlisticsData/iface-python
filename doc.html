@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentação - Classe RemoteConnect</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; }
+        code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+        pre { background-color: #f8f8f8; padding: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<h1>Classe RemoteConnect</h1>
+<p>Classe responsável por realizar conexões e operações com uma API remota, incluindo autenticação e gerenciamento de dados de funcionários e construções.</p>
+
+<h2>Construtor</h2>
+<pre><code>__init__(config_path="config.ini")</code></pre>
+<p>Lê as configurações do arquivo INI e realiza autenticação imediata com a API.</p>
+
+<h2>Métodos</h2>
+
+<h3>authenticate() → Optional[dict]</h3>
+<p>Autentica o usuário com email e senha fornecidos na configuração. Retorna um dicionário com os dados de autenticação (incluindo JWT) ou <code>None</code> em caso de falha.</p>
+
+<h3>_post(endpoint: str, data: dict) → str</h3>
+<p>Método interno que realiza um POST autenticado para o endpoint fornecido com os dados informados.</p>
+
+<h3>authenticate_user(email: str, password: str) → str</h3>
+<p>Solicita a criação de uma conta de usuário na API.</p>
+
+<h3>register_return(mv) → str</h3>
+<p>Registra um retorno de movimentação facial na obra. Espera um objeto com os atributos:
+<code>branchCompanyCustomerConstruct</code>, <code>employeeCode</code>, <code>readding</code>, <code>recordType</code>, <code>nsr</code>.</p>
+
+<h3>request_face_download(company: Company, construction_code: str) → str</h3>
+<p>Solicita o download de dados faciais de funcionários para uma construção.</p>
+
+<h3>request_face_update(company: Company, employee) → str</h3>
+<p>Solicita a atualização dos dados faciais de um funcionário.</p>
+
+<h3>request_face_registration_active(company: Company) → str</h3>
+<p>Solicita a ativação de registros faciais de funcionários de uma empresa.</p>
+
+<h3>request_face_remove_active_face(uuid: str) → str</h3>
+<p>Solicita a remoção de um rosto ativo identificado por UUID.</p>
+
+<h3>update_employee(employee_array: List[str]) → str</h3>
+<p>Atualiza os dados de múltiplos funcionários por lote. Recebe uma lista de strings com os identificadores únicos dos funcionários.</p>
+
+<h2>Dependências</h2>
+<ul>
+    <li><code>requests</code>: biblioteca para requisições HTTP</li>
+    <li><code>configparser.ConfigParser</code>: para leitura de arquivos INI</li>
+    <li><code>Company</code>: classe representando uma empresa (presumivelmente definida no módulo <code>core.Company</code>)</li>
+</ul>
+
+</body>
+</html>

@@ -1,3 +1,5 @@
+import json
+
 import requests
 from configparser import ConfigParser
 from typing import Optional, List
@@ -84,7 +86,9 @@ class RemoteConnect:
     def request_face_remove_active_face(self, uuid: str) -> str:
         return self._post("/construction/iface/request-face-remove", {"codeUuid": uuid})
 
-    def update_employee(self, employee_array: List[str]) -> str:
+    def update_employee(self, employee_array: List[str]):
         keys = "*".join(employee_array)
         data = {"uniquekeys": keys}
-        return self._post("/construction/iface/update-employee-in-lote", data)
+        response=self._post("/construction/iface/request-face-update-employye-ok", data)
+        return json.loads(response) if isinstance(response, str) else response
+

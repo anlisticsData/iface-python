@@ -1,5 +1,7 @@
+import json
 import time
 import threading
+import traceback
 from datetime import datetime
 
 import requests
@@ -51,9 +53,10 @@ def face_download_worker():
 
     while True:
         try:
-            print("processando..|")
+            print("processando.. inicio|")
             server = rpc.RemoteConnect()
             response = server.authenticate()
+            uniques = []
             if response['status'] == 200:
                 user_logged = UserDao.from_json(response['data'])
                 company = Company(config.get('CUSTOMER', 'code'),
@@ -61,78 +64,45 @@ def face_download_worker():
                                   config.get('CUSTOMER', 'branch'), 0)
 
                 users =server.request_face_download(company, config.get('CONSTRUCTION', 'code'))
-                response = EmployeeUpdateAPIResponse.from_json(users)
-                for update in response.data:
-                    row=update.to_dict()
-                    dir_codes=row['unique'].split('-')
-                    operation = row[__CONSTANT_OPERATION__]
-                    employee_data =ByUseUseCase.execute(row)
-                    is_registers = True if employee_data is not None else False
-                    is_block=Core.is_expired(row['DataBloqueioLiberacao'])
-                    if operation is not None and (operation == __STATE_INSERT or operation == __STATE_DELETED):
-                        if is_registers is not True:
-                            if NewEmployyesUseCase().execute(row) is not None:
-                                print('Salvo', row)
+                response_users = json.loads(users) if isinstance(users, str) else users
+                if response_users['data'] is not None:
+
+                    response = EmployeeUpdateAPIResponse.from_json(users)
+                    for update in response.data:
+                        row=update.to_dict()
+                        unique=row['unique']
+                        dir_codes=unique.split('-')
+                        operation = row[__CONSTANT_OPERATION__]
+                        employee_data =ByUseUseCase.execute(row)
+                        is_registers = True if employee_data is not None else False
+                        is_block=Core.is_expired(row['DataBloqueioLiberacao'])
+                        if operation is not None and (operation == __STATE_INSERT or operation == __STATE_DELETED):
+                            if is_registers is not True:
+                                if NewEmployyesUseCase().execute(row) is not None:
+                                    print('Salvo', row)
 
 
 
 
-                    if operation is not None and operation==__STATE_DELETED:
-                        #print('row=', row)
-                        ByEmployeeDesactiveUseCase().execute(employee_data['id'])
+                        if operation is not None and operation==__STATE_DELETED:
+                            #print('row=', row)
+                            ByEmployeeDesactiveUseCase().execute(employee_data['id'])
 
 
 
 
+                        if is_block and isinstance(employee_data, dict) and 'id' in employee_data:
+                            ByEmployeeDesactiveUseCase().execute(employee_data['id'])
 
 
 
-
-                    if is_block:
-                        ByEmployeeDesactiveUseCase().execute(employee_data['id'])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                    '''
-                    if row['Foto'] is not None:
-                        file_path=config.get('API', 'file')
-                    
-                        file_url="{}{}/{}/{}/{}".format(config.get('API', 'file'),
-                                                     dir_codes[0],dir_codes[1],dir_codes[2], row['Foto'])
-
-                        
-                        try:
-                            url = "{}/api/user/face".format(config.get('API', 'iface'))
-                            # Dados do formulário (campos de texto)
-                            data = {
-                                   'id': row['CodigoFuncionario'],
-                                   'name': row['NomeCompleto'],
-                                   'enabled': 'true',  # ou 'false',
-                                   'photo_url': file_url,
-                            }
-
-                            response = requests.post(url, data=data)
-
-                            print(response.text)
-
-                        except:
-                            pass
-
-
-
-                    '''
+                        uniques.append(unique)
+                    print(uniques)
+                    response_update_employees=server.update_employee(uniques)
+                    if response_update_employees is not None:
+                        if response_update_employees['status'] == 200:
+                            print('Salvo', response_update_employees)
+                            uniques.clear()
 
 
 
@@ -141,22 +111,14 @@ def face_download_worker():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-           # print(server.request_face_download(company, config.get('CONSTRUCTION', 'code')))
+        # print(server.request_face_download(company, config.get('CONSTRUCTION', 'code')))
 
         except Exception as e:
             print(f"Erro durante execução: {e}")
+            print("Erro durante execução  PILHA:")
+            traceback.print_exc()
 
+        print("processando.. Fim\n|")
         time.sleep(float(config.get('SETTINGS','download')))
 
 
@@ -195,6 +157,38 @@ if __name__ == '__main__':
 
 
 
+
+
+
+
+    '''
+    if row['Foto'] is not None:
+        file_path=config.get('API', 'file')
+
+        file_url="{}{}/{}/{}/{}".format(config.get('API', 'file'),
+                                     dir_codes[0],dir_codes[1],dir_codes[2], row['Foto'])
+
+
+        try:
+            url = "{}/api/user/face".format(config.get('API', 'iface'))
+            # Dados do formulário (campos de texto)
+            data = {
+                   'id': row['CodigoFuncionario'],
+                   'name': row['NomeCompleto'],
+                   'enabled': 'true',  # ou 'false',
+                   'photo_url': file_url,
+            }
+
+            response = requests.post(url, data=data)
+
+            print(response.text)
+
+        except:
+            pass
+
+
+
+    '''
 
 
 

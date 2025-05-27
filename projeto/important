@@ -2,6 +2,52 @@
 
 
 
+///*
+
+
+SELECT * FROM FuncionariosAtualizacao WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
+
+
+
+
+
+SELECT * FROM `Funcionarios` WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003'
+
+
+
+SELECT * FROM `Funcionarios` WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
+
+
+
+
+update `FuncionariosAtualizacao` set Atualizar="Sim" WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
+
+
+update `FuncionariosAtualizacao` set Operacao='I', Atualizar="Sim" WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
+
+
+
+
+
+update `FuncionariosAtualizacao` set Atualizar="Sim" WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003' and  `CodigoObra`=101
+
+
+
+
+
+
+SELECT * FROM `FuncionariosAtualizacao` WHERE  `CodigoObra`=101 and `CodigoEmpresa`=2
+SELECT * FROM `FuncionariosAtualizacao`  WHERE  `CodigoEmpresa`=2 and `CodigoFilial`='003'
+
+UPDATE `FuncionariosAtualizacao` SET `Foto` = 'Sim' WHERE `FuncionariosAtualizacao`.`id` = 31;
+
+
+**/
+
+
+
+
+
  new_employee = {
         'autorized': 1,
         'employees_code': 'EMP001',
