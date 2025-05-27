@@ -1,9 +1,40 @@
 import time
 import threading
+from datetime import datetime
+
 import requests
 import core.RemoteConnect as rpc
+from core import Core
 from core.Company import Company
 from configparser import ConfigParser
+
+from core.UserDao import UserDao
+from core.dao.EmployeeUpdate import EmployeeUpdateAPIResponse
+from core.usecases.ByEmployeeDesactiveUseCase import ByEmployeeDesactiveUseCase
+from core.usecases.ByEmployyesUseCase import ByEmployyesUseCase
+from core.usecases.NewEmployyesUseCase import NewEmployyesUseCase
+
+
+
+
+__STATE_INSERT='I'
+__STATE_DELETED='E'
+__CONSTANT_OPERATION__="Operacao"
+
+
+
+
+
+
+
+
+
+
+
+
+
+user_logged=None
+company=None
 
 
 def face_download_worker():
@@ -11,17 +42,117 @@ def face_download_worker():
     config_path = "config.ini"
     config = ConfigParser()
     config.read(config_path)
+    ByUseUseCase =ByEmployyesUseCase()
+
+
+
+
+
 
     while True:
         try:
             print("processando..|")
-            f = rpc.RemoteConnect()
-            user = f.authenticate()
-            print(user)
-            print(user['data'])
+            server = rpc.RemoteConnect()
+            response = server.authenticate()
+            if response['status'] == 200:
+                user_logged = UserDao.from_json(response['data'])
+                company = Company(config.get('CUSTOMER', 'code'),
+                                  config.get('CUSTOMER', 'company'),
+                                  config.get('CUSTOMER', 'branch'), 0)
 
-            cc = Company(config.get('CUSTOMER', 'code'), 1, '001', 0)
-            print(f.request_face_download(cc, '101'))
+                users =server.request_face_download(company, config.get('CONSTRUCTION', 'code'))
+                response = EmployeeUpdateAPIResponse.from_json(users)
+                for update in response.data:
+                    row=update.to_dict()
+                    dir_codes=row['unique'].split('-')
+                    operation = row[__CONSTANT_OPERATION__]
+                    employee_data =ByUseUseCase.execute(row)
+                    is_registers = True if employee_data is not None else False
+                    is_block=Core.is_expired(row['DataBloqueioLiberacao'])
+                    if operation is not None and (operation == __STATE_INSERT or operation == __STATE_DELETED):
+                        if is_registers is not True:
+                            if NewEmployyesUseCase().execute(row) is not None:
+                                print('Salvo', row)
+
+
+
+
+                    if operation is not None and operation==__STATE_DELETED:
+                        #print('row=', row)
+                        ByEmployeeDesactiveUseCase().execute(employee_data['id'])
+
+
+
+
+
+
+
+
+                    if is_block:
+                        ByEmployeeDesactiveUseCase().execute(employee_data['id'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    '''
+                    if row['Foto'] is not None:
+                        file_path=config.get('API', 'file')
+                    
+                        file_url="{}{}/{}/{}/{}".format(config.get('API', 'file'),
+                                                     dir_codes[0],dir_codes[1],dir_codes[2], row['Foto'])
+
+                        
+                        try:
+                            url = "{}/api/user/face".format(config.get('API', 'iface'))
+                            # Dados do formulário (campos de texto)
+                            data = {
+                                   'id': row['CodigoFuncionario'],
+                                   'name': row['NomeCompleto'],
+                                   'enabled': 'true',  # ou 'false',
+                                   'photo_url': file_url,
+                            }
+
+                            response = requests.post(url, data=data)
+
+                            print(response.text)
+
+                        except:
+                            pass
+
+
+
+                    '''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+           # print(server.request_face_download(company, config.get('CONSTRUCTION', 'code')))
 
         except Exception as e:
             print(f"Erro durante execução: {e}")
@@ -30,6 +161,47 @@ def face_download_worker():
 
 
 if __name__ == '__main__':
+    print("Hello world")
+    face_download_worker()
+
+    json_dict = {
+        'name': 'Controladora 1',
+        'email': 'controladora1@app.com',
+        'jwt': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        'user': '6',
+        'access': '3',
+        'state': '3'
+    }
+
+    # Parse a partir de dicionário
+    controller = UserDao.from_json(json_dict)
+    print(controller)
+
+    # Convertendo de volta para JSON
+    json_str = controller.to_json()
+    print(json_str)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    '''
+    
+  
     thread = threading.Thread(target=face_download_worker)
     thread.daemon = True  # Encerra a thread se o programa principal for finalizado
     thread.start()
@@ -40,3 +212,6 @@ if __name__ == '__main__':
             time.sleep(1)
     except KeyboardInterrupt:
         print("Encerrando aplicação...")
+
+
+'''
