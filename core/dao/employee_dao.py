@@ -14,8 +14,8 @@ class EmployeeDAO:
                 INSERT INTO employees (
                     autorized, employees_code, fullname, rg, cpf,
                     controller_code, company_join, remote_event_code,
-                    remote_uuid, data_bloqueio_liberacao, deleted_at, iface
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    remote_uuid, data_bloqueio_liberacao, deleted_at, iface,photo
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
             """
             cursor.execute(sql, (
                 employee_data.get('autorized'),
@@ -29,7 +29,8 @@ class EmployeeDAO:
                 employee_data.get('remote_uuid'),
                 employee_data.get('data_bloqueio_liberacao'),
                 employee_data.get('deleted_at'),
-                employee_data.get('iface')
+                employee_data.get('iface'),
+                employee_data.get('photo')
             ))
             conn.commit()
             return cursor.lastrowid
@@ -48,6 +49,21 @@ class EmployeeDAO:
             return cursor.fetchone()
         finally:
             MySQLConnection.close(conn)
+
+    @staticmethod
+    def remote_employee_code(employee_id):
+        conn = MySQLConnection.connect()
+        if not conn:
+            return None
+
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM employees WHERE employees_code = %s", (employee_id,))
+            return cursor.fetchone()
+        finally:
+            MySQLConnection.close(conn)
+
+
 
     @staticmethod
     def update(employee_id, updated_data):
@@ -79,3 +95,36 @@ class EmployeeDAO:
             return cursor.rowcount > 0
         finally:
             MySQLConnection.close(conn)
+            return None
+
+    @staticmethod
+    def disabled(employee_id):
+        conn = MySQLConnection.connect()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE employees SET autorized=0 WHERE id = %s", (employee_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            MySQLConnection.close(conn)
+            return None
+
+    @staticmethod
+    def enabled(employee_id):
+        conn = MySQLConnection.connect()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE employees SET autorized=1 WHERE id = %s", (employee_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            MySQLConnection.close(conn)
+            return None
+
+

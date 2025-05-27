@@ -22,15 +22,15 @@ class MySQLConnection:
             config = MySQLConnection.load_config(config_path)
             connection = mysql.connector.connect(**config)
             if connection.is_connected():
-                print("Connection successful!")
+                #print("Connection successful!")
                 return connection
             return None
         except Error as e:
-            print(f"Connection error: {e}")
+            #print(f"Connection error: {e}")
             return None
 
     @staticmethod
     def close(connection):
         if connection and connection.is_connected():
             connection.close()
-            print("Connection closed.")
+            #print("Connection closed.")
