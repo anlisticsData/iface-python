@@ -84,7 +84,9 @@ def process_user(row, config, by_use_case):
 
     # Inserção
     if operation == __STATE_INSERT and not is_register:
-        if NewEmployyesUseCase().execute(row) is not None:
+        user_create =  NewEmployyesUseCase().execute(row)
+
+        if user_create is not None:
             print('Salvo', row)
 
     # Atualização ou Ativação
@@ -136,6 +138,19 @@ def face_download_worker():
                 logs = log_fetcher.fetch_logs()
                 for log in logs:
                     print(log)
+                    new_history = {
+                        'employees_iface_id': 'iface-123',
+                        'employees_remote_code': 'remote-456',
+                        'remote_event_code': 'event-789',
+                        'remote_uud': 'uuid-xyz',
+                        'fullname': 'Jane Doe',
+                        'company_join': '2024-01-01',
+                        'readding': 'Entrada registrada',
+                        'recordType': 1,
+                        'process': datetime.now(),
+                        'upload': 'N'
+                    }
+
                     if len(logs) >= int(delete_logs):
                         # Enviar um log deletado
                         log_data = {
@@ -205,7 +220,7 @@ def faces_in_device():
                     dirs = row['remote_uuid'].split('-')
                     dir_codes = [dirs[0], dirs[1], dirs[2]]
                     row = {
-                        'id': row['employees_code'],
+                        'id': row['id'],
                         'name':row['fullname'],
                         'enabled': True,
                         'photo': row['photo'],
