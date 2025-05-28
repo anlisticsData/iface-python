@@ -37,6 +37,7 @@ class EmployeeDAO:
         finally:
             MySQLConnection.close(conn)
 
+
     @staticmethod
     def read(employee_id):
         conn = MySQLConnection.connect()
@@ -50,6 +51,27 @@ class EmployeeDAO:
         finally:
             MySQLConnection.close(conn)
 
+
+
+    @staticmethod
+    def device_not_faces():
+        conn = MySQLConnection.connect()
+        if not conn:
+            return None
+
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM employees WHERE iface = 'N'")
+            return cursor.fetchall()
+        finally:
+            MySQLConnection.close(conn)
+
+
+
+
+
+
+
     @staticmethod
     def remote_employee_code(employee_id):
         conn = MySQLConnection.connect()
@@ -62,6 +84,7 @@ class EmployeeDAO:
             return cursor.fetchone()
         finally:
             MySQLConnection.close(conn)
+
 
 
 
@@ -82,6 +105,7 @@ class EmployeeDAO:
         finally:
             MySQLConnection.close(conn)
 
+
     @staticmethod
     def delete(employee_id):
         conn = MySQLConnection.connect()
@@ -95,7 +119,7 @@ class EmployeeDAO:
             return cursor.rowcount > 0
         finally:
             MySQLConnection.close(conn)
-            return None
+
 
     @staticmethod
     def disabled(employee_id):
@@ -110,7 +134,7 @@ class EmployeeDAO:
             return cursor.rowcount > 0
         finally:
             MySQLConnection.close(conn)
-            return None
+
 
     @staticmethod
     def enabled(employee_id):
@@ -120,11 +144,11 @@ class EmployeeDAO:
 
         try:
             cursor = conn.cursor()
-            cursor.execute("UPDATE employees SET autorized=1 WHERE id = %s", (employee_id,))
+            cursor.execute("UPDATE employees SET autorized=1,iface='S' WHERE id = %s", (employee_id,))
             conn.commit()
             return cursor.rowcount > 0
         finally:
             MySQLConnection.close(conn)
-            return None
+
 
 

@@ -39,6 +39,24 @@ class SettingsDAO:
             MySQLConnection.close(conn)
 
     @staticmethod
+    def by_description(description):
+        conn = MySQLConnection.connect()
+        if not conn:
+            return None
+
+        try:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM settings WHERE type = %s", (description,))
+            return cursor.fetchone()
+        except:
+            return None
+        finally:
+            MySQLConnection.close(conn)
+
+
+
+
+    @staticmethod
     def update(setting_id, updated_data):
         conn = MySQLConnection.connect()
         if not conn:

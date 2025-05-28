@@ -9,7 +9,7 @@ class ByEmployeeActiveUseCase(object):
                 'fullname': employee['NomeCompleto'],
                 'data_bloqueio_liberacao': employee['DataBloqueioLiberacao'],
                 'deleted_at': None,
-                'iface': 'Y' if employee.get('Foto') not in [None, ''] else 'N' if 'Foto' in employee else '',
+                'iface': 'N',
                 'photo': employee['Foto'] if employee.get('Foto') not in [None,''] else None if 'Foto' in employee else None
             }
 

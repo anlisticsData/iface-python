@@ -1,117 +1,145 @@
+import configparser
 import json
 import time
 import threading
 import traceback
 from datetime import datetime
-
 import requests
+from configparser import ConfigParser
+
 import core.RemoteConnect as rpc
 from core import Core
 from core.Company import Company
-from configparser import ConfigParser
-
 from core.UserDao import UserDao
 from core.dao.EmployeeUpdate import EmployeeUpdateAPIResponse
+from core.dao.SettingsDAO import SettingsDAO
+from core.dao.employee_dao import EmployeeDAO
+from core.device_dn815.UserPhotoUploader import UserPhotoUploader
+from core.device_dn815.UserStatusManager import UserStatusManager
 from core.usecases.ByEmployeeActiveUseCase import ByEmployeeActiveUseCase
 from core.usecases.ByEmployeeDesactiveUseCase import ByEmployeeDesactiveUseCase
 from core.usecases.ByEmployyesUseCase import ByEmployyesUseCase
 from core.usecases.NewEmployyesUseCase import NewEmployyesUseCase
 
+# Constantes de operação
+__STATE_INSERT = 'I'
+__STATE_DELETED = 'E'
+__STATE_UPDATE = 'A'
+__CONSTANT_OPERATION__ = "Operacao"
+__IS_DEVICE_PROCESSING__="__IS_PROCESSING_DEVICE__"
+__IGNORE_LOGS_CARD__="CD"
 
 
-
-__STATE_INSERT='I'
-__STATE_DELETED='E'
-__STATE_UPDATE='A'
-
-__CONSTANT_OPERATION__="Operacao"
-
-
-
-
-
-
+__DURACAO_SECONDS__=60
 
 
 
 
 
+def settings():
+    try:
+        new_setting = {
+                'type':__IS_DEVICE_PROCESSING__,
+                'description': 'Controle do Procesamenta da thread e device',
+                'paramets': '',
+                'json': 0
+            }
+
+        setting=SettingsDAO.by_description(new_setting['type'])
+
+        if setting is  None:
+            SettingsDAO.create(new_setting)
+        else:
+            SettingsDAO.update(setting['id'], {'json': '0'})
 
 
-user_logged=None
-company=None
+
+    except:
+        print(traceback.format_exc())
+
+
+
+
+
+
+
+def load_config(path="config.ini"):
+    config = ConfigParser()
+    config.read(path)
+    return config
+
+
+def process_user(row, config, by_use_case):
+    unique = row['unique']
+    dir_codes = unique.split('-')
+    operation = row.get(__CONSTANT_OPERATION__)
+    employee_data = by_use_case.execute(row)
+    is_register = employee_data is not None
+    is_block = Core.is_expired(row['DataBloqueioLiberacao'])
+
+
+    # Inserção
+    if operation == __STATE_INSERT and not is_register:
+        if NewEmployyesUseCase().execute(row) is not None:
+            print('Salvo', row)
+
+    # Atualização ou Ativação
+    elif operation in [__STATE_UPDATE, __STATE_INSERT] and is_register and 'id' in employee_data:
+        ByEmployeeActiveUseCase().execute(employee_data['id'], row)
+        print('Atualizar', row)
+
+    # Exclusão
+    if operation == __STATE_DELETED and is_register and 'id' in employee_data:
+        ByEmployeeDesactiveUseCase().execute(employee_data['id'])
+
+    # Bloqueio
+    manager = UserStatusManager(config.get('API', 'iface'))
+    if is_block and is_register and 'id' in employee_data:
+        ByEmployeeDesactiveUseCase().execute(employee_data['id'])
+        print(manager.disable_user(employee_data['employees_code']))
+    else:
+        ByEmployeeActiveUseCase().execute(employee_data['id'],employee_data)
+        print(manager.enable_user(employee_data['employees_code']))
+
+
+
+    return unique
 
 
 def face_download_worker():
-    print('Hello world')
-    config_path = "config.ini"
-    config = ConfigParser()
-    config.read(config_path)
-    ByUseUseCase =ByEmployyesUseCase()
 
-
-
-
-
+    print('[Iniciando o worker]')
+    config = load_config()
+    by_use_case = ByEmployyesUseCase()
 
     while True:
         try:
-            print("processando.. inicio|")
-            server = rpc.RemoteConnect()
-            response = server.authenticate()
-            uniques = []
-            if response['status'] == 200:
-                user_logged = UserDao.from_json(response['data'])
-                company = Company(config.get('CUSTOMER', 'code'),
-                                  config.get('CUSTOMER', 'company'),
-                                  config.get('CUSTOMER', 'branch'), 0)
 
-                users =server.request_face_download(company, config.get('CONSTRUCTION', 'code'))
-                response_users = json.loads(users) if isinstance(users, str) else users
-                if response_users['data'] is not None:
+            setting_device=SettingsDAO.by_description(__IS_DEVICE_PROCESSING__)
+            if setting_device['json'] == '1':
+                thread_device = threading.Thread(target=faces_in_device(), daemon=True)
+                thread_device.start()
+            else:
+                print("[Início do processamento]  ")
+                server = rpc.RemoteConnect()
+                response = server.authenticate()
+                if response.get('status') == 200:
+                    user_logged = UserDao.from_json(response['data'])
+                    company = Company(config.get('CUSTOMER', 'code'),
+                                      config.get('CUSTOMER', 'company'),
+                                      config.get('CUSTOMER', 'branch'), 0)
 
-                    response = EmployeeUpdateAPIResponse.from_json(users)
-                    for update in response.data:
-                        row=update.to_dict()
-                        unique=row['unique']
-                        dir_codes=unique.split('-')
-                        operation = row[__CONSTANT_OPERATION__]
-                        employee_data =ByUseUseCase.execute(row)
-                        is_registers = True if employee_data is not None else False
-                        is_block=Core.is_expired(row['DataBloqueioLiberacao'])
-                        if operation is not None and (operation == __STATE_INSERT or operation == __STATE_DELETED):
-                            if is_registers is not True:
-                                if NewEmployyesUseCase().execute(row) is not None:
-                                    print('Salvo', row)
+                    users = server.request_face_download(company, config.get('CONSTRUCTION', 'code'))
+                    response_users = json.loads(users) if isinstance(users, str) else users
 
+                    if response_users.get('data') is not None:
+                        response_obj = EmployeeUpdateAPIResponse.from_json(users)
+                        uniques = [process_user(row.to_dict(), config, by_use_case) for row in response_obj.data]
 
-
-
-                        if operation is not None and operation==__STATE_DELETED:
-                            ByEmployeeDesactiveUseCase().execute(employee_data['id'])
-
-
-                        if operation is not None and operation==__STATE_UPDATE:
-                            ByEmployeeActiveUseCase().execute(employee_data['id'],row)
-
-
-
-
-
-
-                        if is_block and isinstance(employee_data, dict) and 'id' in employee_data:
-                            ByEmployeeDesactiveUseCase().execute(employee_data['id'])
-
-
-
-
-                        uniques.append(unique)
-
-                    response_update_employees=server.update_employee(uniques)
-                    if response_update_employees is not None:
-                        if response_update_employees['status'] == 200:
-                            print('Salvo', response_update_employees)
-                            uniques.clear()
+                        response_update = server.update_employee(uniques)
+                        if response_update and response_update.get('status') == 200:
+                            print('Atualização concluída:', response_update)
+                            SettingsDAO.update(setting_device['id'], {'json': '1'})
 
 
 
@@ -120,101 +148,84 @@ def face_download_worker():
 
 
 
-        # print(server.request_face_download(company, config.get('CONSTRUCTION', 'code')))
+
 
         except Exception as e:
-            print(f"Erro durante execução: {e}")
-            print("Erro durante execução  PILHA:")
+            print(f"[Erro] {e}")
             traceback.print_exc()
 
-        print("processando.. Fim\n|")
-        time.sleep(float(config.get('SETTINGS','download')))
+        print("[Fim do processamento]\n")
+        time.sleep(float(config.get('SETTINGS', 'download')))
+
+
+
+
+
+
+def faces_in_device():
+    try:
+
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        setting_device = SettingsDAO.by_description(__IS_DEVICE_PROCESSING__)
+        print('[Iniciando o worker send Faces]')
+        faces_not_device = EmployeeDAO.device_not_faces()
+        for row in faces_not_device:
+            try:
+
+                if row['photo'] is not None:
+                    dirs = row['remote_uuid'].split('-')
+                    dir_codes = [dirs[0], dirs[1], dirs[2]]
+                    row = {
+                        'id': row['employees_code'],
+                        'name':row['fullname'],
+                        'enabled': True,
+                        'photo': row['photo'],
+
+                    }
+                    uploader = UserPhotoUploader(config)
+                    response=json.loads(uploader.upload_photo(row, dir_codes))
+                    if response.get('create-user-face'):
+                        EmployeeDAO.enabled(row['id'])
+
+
+
+
+
+            except Exception as e:
+                print(f"[Erro] {e}")
+
+        print('[Finalizando o worker send Faces]')
+        SettingsDAO.update(setting_device['id'], {'json': '0'})
+
+
+
+
+
+
+
+
+
+    except Exception:
+        traceback.print_exc()
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
-    print("Hello world")
-    face_download_worker()
-
-    json_dict = {
-        'name': 'Controladora 1',
-        'email': 'controladora1@app.com',
-        'jwt': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        'user': '6',
-        'access': '3',
-        'state': '3'
-    }
-
-    # Parse a partir de dicionário
-    controller = UserDao.from_json(json_dict)
-    print(controller)
-
-    # Convertendo de volta para JSON
-    json_str = controller.to_json()
-    print(json_str)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    '''
-    if row['Foto'] is not None:
-        file_path=config.get('API', 'file')
-
-        file_url="{}{}/{}/{}/{}".format(config.get('API', 'file'),
-                                     dir_codes[0],dir_codes[1],dir_codes[2], row['Foto'])
-
-
-        try:
-            url = "{}/api/user/face".format(config.get('API', 'iface'))
-            # Dados do formulário (campos de texto)
-            data = {
-                   'id': row['CodigoFuncionario'],
-                   'name': row['NomeCompleto'],
-                   'enabled': 'true',  # ou 'false',
-                   'photo_url': file_url,
-            }
-
-            response = requests.post(url, data=data)
-
-            print(response.text)
-
-        except:
-            pass
-
-
-
-    '''
-
-
-
-
-    '''
-    
-  
-    thread = threading.Thread(target=face_download_worker)
-    thread.daemon = True  # Encerra a thread se o programa principal for finalizado
+    print("Iniciando aplicação...")
+    settings()
+    thread = threading.Thread(target=face_download_worker, daemon=True)
     thread.start()
 
-    # Loop principal pode fazer outras coisas ou apenas manter o programa vivo
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Encerrando aplicação...")
-
-
-'''

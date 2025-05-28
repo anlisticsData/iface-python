@@ -193,6 +193,51 @@ UPDATE `FuncionariosAtualizacao` SET `Foto` = 'Sim' WHERE `FuncionariosAtualizac
 
 
 
+/////
 
 
 
+   '''
+                    if row['Foto'] is not None:
+                        file_path=config.get('API', 'file')
+
+                        file_url="{}{}/{}/{}/{}".format(config.get('API', 'file'),
+                                                     dir_codes[0],dir_codes[1],dir_codes[2], row['Foto'])
+
+
+                        try:
+                            url = "{}/api/user/face".format(config.get('API', 'iface'))
+                            # Dados do formulário (campos de texto)
+                            data = {
+                                   'id': row['CodigoFuncionario'],
+                                   'name': row['NomeCompleto'],
+                                   'enabled': 'true',  # ou 'false',
+                                   'photo_url': file_url,
+                            }
+
+                            response = requests.post(url, data=data)
+
+                            print(response.text)
+
+                        except:
+                            pass
+
+
+
+                    '''
+
+
+
+
+
+
+
+
+
+manager = UserStatusManager("http://127.0.0.1:5000")
+
+# Desativar usuário
+print(manager.disable_user(4517))
+
+# Ativar usuário
+print(manager.enable_user(4517))
