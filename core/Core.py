@@ -16,9 +16,3 @@ def is_expired(date_str: str) -> bool:
     return given_date < now
 
 
-# Example usage
-date = "2026-03-14 00:00:00"
-if is_expired(date):
-    print("Date is expired")
-else:
-    print("Date is still valid")

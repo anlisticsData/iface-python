@@ -123,6 +123,7 @@ def face_download_worker():
         try:
 
             setting_device=SettingsDAO.by_description(__IS_DEVICE_PROCESSING__)
+            delete_logs=config.get('SETTINGS', 'delete_logs')
             if setting_device['json'] == __STATE_FACE_DEVICE__:
                 thread_device = threading.Thread(target=faces_in_device(), daemon=True)
                 thread_device.start()
@@ -135,16 +136,16 @@ def face_download_worker():
                 logs = log_fetcher.fetch_logs()
                 for log in logs:
                     print(log)
-                    if len(logs) > 10:
+                    if len(logs) >= int(delete_logs):
                         # Enviar um log deletado
                         log_data = {
                             'log_id': log['log_id'],
                             'reason': '',
-                            'timestamp': '2025-05-28T14:30:00'
+                            'timestamp': '0000-00-00T00:00:00'
                         }
                         print(log_sender_delete.send_deleted_log(log_data))
 
-                #SettingsDAO.update(setting_device['id'], {'json': '0'})
+                SettingsDAO.update(setting_device['id'], {'json': '0'})
 
             else:
                 print("[Início do processamento]  ")
@@ -225,9 +226,27 @@ def faces_in_device():
         print('[Finalizando o worker send Faces]')
         SettingsDAO.update(setting_device['id'], {'json': '0'})
 
+    except Exception:
+        traceback.print_exc()
 
 
 
+
+def get_device_logs():
+    try:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        while True:
+            print('[Iniciando o worker busca de Logs]')
+            setting_device = SettingsDAO.by_description(__IS_DEVICE_PROCESSING__)
+            if setting_device['json'] !=2:
+                SettingsDAO.update(setting_device['id'], {'json': '2'})
+                print('[Agendando Busca e Dormindo   o worker busca de Logs]')
+
+
+
+            print('[Finalizando e Dormindo   o worker busca de Logs]')
+            time.sleep(30)
 
 
 
@@ -242,14 +261,16 @@ def faces_in_device():
 
 
 
-
-
-
 if __name__ == '__main__':
     print("Iniciando aplicação...")
     settings()
     thread = threading.Thread(target=face_download_worker, daemon=True)
     thread.start()
+
+    thread_logs = threading.Thread(target=get_device_logs, daemon=True)
+    thread_logs.start()
+
+
 
     try:
         while True:
