@@ -14,6 +14,8 @@ from core.UserDao import UserDao
 from core.dao.EmployeeUpdate import EmployeeUpdateAPIResponse
 from core.dao.SettingsDAO import SettingsDAO
 from core.dao.employee_dao import EmployeeDAO
+from core.device_dn815.DeletedLogSender import DeletedLogSender
+from core.device_dn815.UserLogFetcher import UserLogFetcher
 from core.device_dn815.UserPhotoUploader import UserPhotoUploader
 from core.device_dn815.UserStatusManager import UserStatusManager
 from core.usecases.ByEmployeeActiveUseCase import ByEmployeeActiveUseCase
@@ -28,6 +30,8 @@ __STATE_UPDATE = 'A'
 __CONSTANT_OPERATION__ = "Operacao"
 __IS_DEVICE_PROCESSING__="__IS_PROCESSING_DEVICE__"
 __IGNORE_LOGS_CARD__="CD"
+__STATE_FACE_DEVICE__="1"
+__STATE_DELETE_LOG_DEVICE__="2"
 
 
 __DURACAO_SECONDS__=60
@@ -106,6 +110,9 @@ def process_user(row, config, by_use_case):
     return unique
 
 
+
+
+
 def face_download_worker():
 
     print('[Iniciando o worker]')
@@ -116,9 +123,29 @@ def face_download_worker():
         try:
 
             setting_device=SettingsDAO.by_description(__IS_DEVICE_PROCESSING__)
-            if setting_device['json'] == '1':
+            if setting_device['json'] == __STATE_FACE_DEVICE__:
                 thread_device = threading.Thread(target=faces_in_device(), daemon=True)
                 thread_device.start()
+
+            elif setting_device['json'] == __STATE_DELETE_LOG_DEVICE__:
+                print("Log")
+                log_fetcher = UserLogFetcher(config.get('API', 'iface'))
+                log_sender_delete = DeletedLogSender(config.get('API', 'iface'))
+                # Buscar todos os logs
+                logs = log_fetcher.fetch_logs()
+                for log in logs:
+                    print(log)
+                    if len(logs) > 10:
+                        # Enviar um log deletado
+                        log_data = {
+                            'log_id': log['log_id'],
+                            'reason': '',
+                            'timestamp': '2025-05-28T14:30:00'
+                        }
+                        print(log_sender_delete.send_deleted_log(log_data))
+
+                #SettingsDAO.update(setting_device['id'], {'json': '0'})
+
             else:
                 print("[Início do processamento]  ")
                 server = rpc.RemoteConnect()
