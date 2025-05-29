@@ -72,6 +72,19 @@ class RemoteConnect:
         data = {"branchCompanyCustomerConstruct": branch_info}
         return self._post("/construction/iface/request-face-update-employye", data)
 
+
+
+
+
+    def request_face_download_all(self, company: Company, construction_code: str) -> str:
+        branch_info = f"{company.clientCode}|{construction_code}"
+        data = {"branchCompanyCustomerConstruct": branch_info}
+        return self._post("/construction/iface/request-face-update-employees-all", data)
+
+
+
+
+
     def request_face_update(self, company: Company, employee) -> str:
         branch_info = f"{company.clientCode}|{company.companyCode}|{company.banchCode}"
         data = {

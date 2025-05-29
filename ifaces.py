@@ -190,7 +190,7 @@ def face_download_worker():
                                       config.get('CUSTOMER', 'company'),
                                       config.get('CUSTOMER', 'branch'), 0)
 
-                    users = server.request_face_download(company, config.get('CONSTRUCTION', 'code'))
+                    users = server.request_face_download_all(company, config.get('CONSTRUCTION', 'code'))
                     response_users = json.loads(users) if isinstance(users, str) else users
 
                     if response_users.get('data') is not None:
