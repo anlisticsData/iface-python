@@ -51,7 +51,9 @@ class RemoteConnect:
         data = {"email": email, "password": password}
         return self._post("/users/request-account", data)
 
-    def register_return(self, mv) -> str:
+
+
+    def register_return(self, mv:dict) -> str:
         data = {
             "branchCompanyCustomerConstruct": mv.branchCompanyCustomerConstruct,
             "employeeCode": mv.employeeCode,
@@ -60,6 +62,10 @@ class RemoteConnect:
             "nsr": mv.nsr
         }
         return self._post("/construction/iface/register-face-moviments", data)
+
+
+
+
 
     def request_face_download(self, company: Company, construction_code: str) -> str:
         branch_info = f"{company.clientCode}|{company.companyCode}|{company.banchCode}|{construction_code}"
@@ -91,4 +97,36 @@ class RemoteConnect:
         data = {"uniquekeys": keys}
         response=self._post("/construction/iface/request-face-update-employye-ok", data)
         return json.loads(response) if isinstance(response, str) else response
+
+    def register_return(self, mv: dict) -> str:
+        """
+        Envia dados de movimento para a API remota.
+        :param mv: dicionário com os campos: branchCompanyCustomerConstruct, employeeCode, readding, recordType, nsr
+        :return: resposta como string
+        """
+        if not self.logged_in_user:
+            return ""
+
+        url = f"{self.url_address}/construction/iface/register-face-moviments"
+        headers = {
+            "bearer-token": self.logged_in_user["data"]["jwt"],
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+
+        payload = {
+            "branchCompanyCustomerConstruct": mv.get("branchCompanyCustomerConstruct", ""),
+            "employeeCode": mv.get("employeeCode", ""),
+            "readding": mv.get("readding", ""),
+            "recordType": mv.get("recordType", ""),
+            "nsr": mv.get("nsr", "")
+        }
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            return response.text
+        except requests.RequestException as e:
+            print(f"Erro ao enviar movimento: {e}")
+            return ""
+
 

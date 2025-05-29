@@ -10,10 +10,14 @@ from configparser import ConfigParser
 import core.RemoteConnect as rpc
 from core import Core
 from core.Company import Company
+from core.RemoteConnect import RemoteConnect
 from core.UserDao import UserDao
 from core.dao.EmployeeUpdate import EmployeeUpdateAPIResponse
+from core.dao.EmployeesHistoryDAO import EmployeesHistoryDAO
 from core.dao.SettingsDAO import SettingsDAO
 from core.dao.employee_dao import EmployeeDAO
+from core.device_dn815.DeletedLogSender import DeletedLogSender
+from core.device_dn815.UserLogFetcher import UserLogFetcher
 from core.device_dn815.UserPhotoUploader import UserPhotoUploader
 from core.device_dn815.UserStatusManager import UserStatusManager
 from core.usecases.ByEmployeeActiveUseCase import ByEmployeeActiveUseCase
@@ -28,6 +32,8 @@ __STATE_UPDATE = 'A'
 __CONSTANT_OPERATION__ = "Operacao"
 __IS_DEVICE_PROCESSING__="__IS_PROCESSING_DEVICE__"
 __IGNORE_LOGS_CARD__="CD"
+__STATE_FACE_DEVICE__="1"
+__STATE_DELETE_LOG_DEVICE__="2"
 
 
 __DURACAO_SECONDS__=60
@@ -80,7 +86,9 @@ def process_user(row, config, by_use_case):
 
     # Inserção
     if operation == __STATE_INSERT and not is_register:
-        if NewEmployyesUseCase().execute(row) is not None:
+        user_create =  NewEmployyesUseCase().execute(row)
+
+        if user_create is not None:
             print('Salvo', row)
 
     # Atualização ou Ativação
@@ -95,15 +103,20 @@ def process_user(row, config, by_use_case):
     # Bloqueio
     manager = UserStatusManager(config.get('API', 'iface'))
     if is_block and is_register and 'id' in employee_data:
-        ByEmployeeDesactiveUseCase().execute(employee_data['id'])
-        print(manager.disable_user(employee_data['employees_code']))
+        if employee_data is not None:
+            ByEmployeeDesactiveUseCase().execute(employee_data['id'])
+            print(manager.disable_user(employee_data['id']))
     else:
-        ByEmployeeActiveUseCase().execute(employee_data['id'],employee_data)
-        print(manager.enable_user(employee_data['employees_code']))
+        if employee_data is not None:
+            ByEmployeeActiveUseCase().execute(employee_data['id'],employee_data)
+            print(manager.enable_user(employee_data['id']))
 
 
 
     return unique
+
+
+
 
 
 def face_download_worker():
@@ -116,9 +129,57 @@ def face_download_worker():
         try:
 
             setting_device=SettingsDAO.by_description(__IS_DEVICE_PROCESSING__)
-            if setting_device['json'] == '1':
+            delete_logs=config.get('SETTINGS', 'delete_logs')
+            typesaccepted = config.get('SETTINGS', 'typesaccepted')
+
+
+            if setting_device['json'] == __STATE_FACE_DEVICE__:
                 thread_device = threading.Thread(target=faces_in_device(), daemon=True)
                 thread_device.start()
+
+            elif setting_device['json'] == __STATE_DELETE_LOG_DEVICE__:
+                print("Log")
+                log_fetcher = UserLogFetcher(config.get('API', 'iface'))
+                log_sender_delete = DeletedLogSender(config.get('API', 'iface'))
+                # Buscar todos os logs
+                logs = log_fetcher.fetch_logs()
+                for log in logs:
+                    print(log)
+                    accepted=typesaccepted.split("|")
+
+                    if  log['action'] in accepted:
+                        employees_iface_id =log['user_id']
+                        employees_data=EmployeeDAO.read(employees_iface_id)
+                        if employees_data is not None:
+                            new_history = {
+                                'employees_iface_id': employees_iface_id,
+                                'employees_remote_code': employees_data['employees_code'],
+                                'remote_event_code': employees_data['remote_uuid'],
+                                'remote_uud': employees_data['remote_uuid'],
+                                'fullname':employees_data['fullname'],
+                                'company_join':config.get('CONSTRUCTION', 'code'),
+                                'readding':None,
+                                'recordType': None,
+                                'process': Core.parse_http_date(log['time']),
+                                'upload': 'N'
+                            }
+                            employee_data =  EmployeesHistoryDAO.has_time(new_history['employees_iface_id'], new_history['process'])
+                            if employee_data is not  None and len(employee_data)==0:
+                                EmployeesHistoryDAO.create(new_history)
+                                print('save Employee data')
+                                if len(logs) >= int(delete_logs):
+                                    # Enviar um log deletado
+                                    log_data = {
+                                        'log_id': log['log_id'],
+                                        'reason': '',
+                                        'timestamp': '0000-00-00T00:00:00'
+                                    }
+                                    print(log_sender_delete.send_deleted_log(log_data))
+                        SettingsDAO.update(setting_device['id'], {'json': '0'})
+
+                    else:
+                        print("nao processado"+log['action'])
+
             else:
                 print("[Início do processamento]  ")
                 server = rpc.RemoteConnect()
@@ -177,7 +238,7 @@ def faces_in_device():
                     dirs = row['remote_uuid'].split('-')
                     dir_codes = [dirs[0], dirs[1], dirs[2]]
                     row = {
-                        'id': row['employees_code'],
+                        'id': row['id'],
                         'name':row['fullname'],
                         'enabled': True,
                         'photo': row['photo'],
@@ -198,9 +259,27 @@ def faces_in_device():
         print('[Finalizando o worker send Faces]')
         SettingsDAO.update(setting_device['id'], {'json': '0'})
 
+    except Exception:
+        traceback.print_exc()
 
 
 
+
+def get_device_logs():
+    try:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        while True:
+            print('[Iniciando o worker busca de Logs]')
+            setting_device = SettingsDAO.by_description(__IS_DEVICE_PROCESSING__)
+            if setting_device['json'] !=2:
+                SettingsDAO.update(setting_device['id'], {'json': '2'})
+                print('[Agendando Busca e Dormindo   o worker busca de Logs]')
+
+
+
+            print('[Finalizando e Dormindo   o worker busca de Logs]')
+            time.sleep(config.getint('SETTINGS', 'logs_search'))
 
 
 
@@ -216,6 +295,60 @@ def faces_in_device():
 
 
 
+def  upload_movements():
+    try:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        remote = RemoteConnect()  # deve ser criado fora do loop
+        while True:
+            print('[Iniciando o worker busca de Movements]')
+            try:
+                moviments=EmployeesHistoryDAO.get_pending_movements()
+                for row in moviments:
+                    if row['remote_uuid'] is not None:
+                        dirs = row['remote_uuid'].split('-')
+                        company_join =  "{}|{}|{}|{}".format(dirs[0], dirs[1], dirs[2], dirs[4])
+
+                        mv ={
+                            "branchCompanyCustomerConstruct":company_join,
+                            "employeeCode": row['employees_code'] ,
+                            "readding":row['process'],
+                            "recordType":1,
+                            "nsr":  row['employees_code_id']
+                        }
+
+                        response=remote.register_return(mv)
+                        upload_remote_moviment =json.loads(response) if isinstance(response, str) else response
+                        if upload_remote_moviment.get('status') == 201:
+                            print('[Salvo Remoto Movements]')
+                            EmployeesHistoryDAO.uploadNuvem(row['employees_code_id'])
+
+
+
+
+
+
+
+
+
+
+            except Exception as e:
+                print(traceback.print_exc())
+                print(f"[Erro] {e}")
+
+
+
+            print('[Iniciando o worker busca de Movements   o worker busca de Logs]')
+            time.sleep(config.getint('SETTINGS', 'upload'))
+
+
+
+
+
+
+    except Exception:
+        traceback.print_exc()
+
 
 
 if __name__ == '__main__':
@@ -223,6 +356,18 @@ if __name__ == '__main__':
     settings()
     thread = threading.Thread(target=face_download_worker, daemon=True)
     thread.start()
+
+    thread_logs = threading.Thread(target=get_device_logs, daemon=True)
+    thread_logs.start()
+
+    thread_upload_logs = threading.Thread(target=upload_movements, daemon=True)
+    thread_upload_logs.start()
+
+
+
+
+
+
 
     try:
         while True:
