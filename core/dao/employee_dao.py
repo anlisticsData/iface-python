@@ -46,7 +46,7 @@ class EmployeeDAO:
 
         try:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM employees WHERE id = %s", (employee_id,))
+            cursor.execute("SELECT * FROM employees WHERE id = %s and deleted_at is null ", (employee_id,))
             return cursor.fetchone()
         finally:
             MySQLConnection.close(conn)
@@ -61,7 +61,7 @@ class EmployeeDAO:
 
         try:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM employees WHERE iface = 'N'")
+            cursor.execute("SELECT * FROM employees WHERE iface = 'N' and deleted_at is null and  photo is not null")
             return cursor.fetchall()
         finally:
             MySQLConnection.close(conn)
@@ -80,7 +80,7 @@ class EmployeeDAO:
 
         try:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM employees WHERE employees_code = %s", (employee_id,))
+            cursor.execute("SELECT * FROM employees WHERE employees_code = %s and deleted_at is null", (employee_id,))
             return cursor.fetchone()
         finally:
             MySQLConnection.close(conn)
@@ -96,29 +96,60 @@ class EmployeeDAO:
 
         try:
             cursor = conn.cursor()
-            fields = ', '.join(f"{key} = %s" for key in updated_data.keys())
+            fields = ', '.join(f"`{key}` = %s" for key in updated_data.keys())
             values = list(updated_data.values()) + [employee_id]
             sql = f"UPDATE employees SET {fields} WHERE id = %s"
             cursor.execute(sql, values)
             conn.commit()
             return cursor.rowcount > 0
+
+        except Exception as e:
+            print(e)
         finally:
             MySQLConnection.close(conn)
 
-
     @staticmethod
-    def delete(employee_id):
+    def delete(employee_id, updated_data):
         conn = MySQLConnection.connect()
         if not conn:
             return False
 
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM employees WHERE id = %s", (employee_id,))
+            fields = ', '.join(f"`{key}` = %s" for key in updated_data.keys())
+            values = list(updated_data.values()) + [employee_id]
+            sql = f"UPDATE employees SET {fields} WHERE id = %s"
+            cursor.execute(sql, values)
             conn.commit()
             return cursor.rowcount > 0
+
+        except Exception as e:
+            print(e)
         finally:
             MySQLConnection.close(conn)
+
+
+
+
+    @staticmethod
+    def delete_in_device(employee_id):
+        conn = MySQLConnection.connect()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE  employees set deleted_at=now() WHERE id = %s", (employee_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+        except Exception as e:
+            print(e)
+            return  None
+        finally:
+            MySQLConnection.close(conn)
+
+
 
 
     @staticmethod

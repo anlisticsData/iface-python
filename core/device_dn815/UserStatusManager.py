@@ -19,6 +19,9 @@ class UserStatusManager:
         """
         return self._post(f"/api/user/{user_id}/enable", user_id, "enable")
 
+
+
+
     def _post(self, path, user_id, action):
         """
         Internal method to send a POST request without body.
@@ -27,8 +30,8 @@ class UserStatusManager:
             url = f"{self.base_url}{path}"
             response = requests.post(url)
             response.raise_for_status()
-            print(f"User {user_id} {action}d successfully.")
+            #print(f"User {user_id} {action}d successfully.")
             return response.text
         except Exception as e:
-            print(f"Failed to {action} user {user_id}: {e}")
+           # print(f"Failed to {action} user {user_id}: {e}")
             return None

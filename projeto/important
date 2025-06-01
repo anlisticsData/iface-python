@@ -241,3 +241,84 @@ print(manager.disable_user(4517))
 
 # Ativar usuário
 print(manager.enable_user(4517))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Cofig  Leitora Rasp
+
+
+
+
+
+
+ iface_dn815.service
+
+
+
+
+   GNU nano 7.2                                                                          /etc/systemd/system/iface_dn815.service
+
+[Unit]
+Description=iface de Inicialização
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/iface_dn815.sh
+Restart=on-failure
+User=root
+WorkingDirectory=/usr/local/bin
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+  GNU nano 7.2                                                                               /usr/local/bin/iface_dn815.sh *
+#!/bin/bash
+echo "Script iniciado em $(date)" >> /var/log/meuscript.log
+
+cd /home/inforcomp/IFACESDN815/
+source .venv/bin/activate
+
+# Inicia o devicebroker em segundo plano
+python -m devicebroker --host 0.0.0.0 --port 8002 --webapp-url http://localhost:8000 &
+
+# Inicia o Django (também pode ser deixado em segundo plano, se quiser)
+cd /home/inforcomp/IFACESDN815/DjangoExample
+export PYTHONPATH=../packages
+python manage.py runserver 0.0.0.0:8000 --settings=demosite.settings.development &
+
+# Volta para o diretório e roda rest2.py
+cd /home/inforcomp/IFACESDN815/
+python rest3.py
+
+
+
+
+
+
+
+
+
+
+
+
+

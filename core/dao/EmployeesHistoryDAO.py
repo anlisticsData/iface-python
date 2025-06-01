@@ -141,7 +141,7 @@ class EmployeesHistoryDAO:
                            JOIN employees_history eh ON e.id = eh.employees_iface_id
                   WHERE e.autorized = 1 \
                     AND eh.upload = 'N' \
-                    AND e.deleted_at IS NULL LIMIT 0, 8 \
+                    AND e.deleted_at IS NULL   order by eh.employees_code_id asc limit 0,8 \
                   """
             cursor.execute(sql)
             for row in cursor.fetchall():

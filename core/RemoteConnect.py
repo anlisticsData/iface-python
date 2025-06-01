@@ -1,9 +1,11 @@
 import json
+import traceback
 
 import requests
 from configparser import ConfigParser
 from typing import Optional, List
 
+import core
 from core.Company import Company
 
 
@@ -24,11 +26,15 @@ class RemoteConnect:
             "password": self.password
         }
         try:
+
             response = requests.post(url, data=data)
             response.raise_for_status()
             return response.json()
+
         except requests.RequestException as e:
             print(f"Erro na autenticação: {e}")
+            core.Core.register_event("authenticate", traceback.format_exc())
+
             return None
 
     def _post(self, endpoint: str, data: dict) -> str:
@@ -45,6 +51,7 @@ class RemoteConnect:
             return response.text
         except requests.RequestException as e:
             print(f"Erro ao fazer POST em {endpoint}: {e}")
+            core.Core.register_event("authenticate", traceback.format_exc())
             return ""
 
     def authenticate_user(self, email: str, password: str) -> str:
@@ -106,10 +113,18 @@ class RemoteConnect:
         return self._post("/construction/iface/request-face-remove", {"codeUuid": uuid})
 
     def update_employee(self, employee_array: List[str]):
-        keys = "*".join(employee_array)
-        data = {"uniquekeys": keys}
-        response=self._post("/construction/iface/request-face-update-employye-ok", data)
-        return json.loads(response) if isinstance(response, str) else response
+       try:
+           keys = "*".join(employee_array)
+           data = {"uniquekeys": keys}
+           response = self._post("/construction/iface/request-face-update-employye-ok", data)
+           return json.loads(response) if isinstance(response, str) else response
+       except requests.RequestException as e:
+           core.Core.register_event("register_return", traceback.format_exc())
+
+
+
+
+
 
     def register_return(self, mv: dict) -> str:
         """
@@ -140,6 +155,7 @@ class RemoteConnect:
             return response.text
         except requests.RequestException as e:
             print(f"Erro ao enviar movimento: {e}")
+            core.Core.register_event("register_return", traceback.format_exc())
             return ""
 
 

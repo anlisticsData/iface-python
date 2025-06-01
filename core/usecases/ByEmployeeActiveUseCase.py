@@ -1,3 +1,5 @@
+import traceback
+
 from core.dao.employee_dao import EmployeeDAO
 
 
@@ -17,5 +19,6 @@ class ByEmployeeActiveUseCase(object):
                 return EmployeeDAO.enabled(employee_id)
 
             return None
-        except:
+        except Exception as e:
+            f=traceback.print_exc()
             return None

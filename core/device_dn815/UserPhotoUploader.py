@@ -1,5 +1,11 @@
+import json
+import traceback
+
 import requests
 import configparser
+
+import core.Core
+
 
 class UserPhotoUploader:
     def __init__(self, config):
@@ -33,10 +39,29 @@ class UserPhotoUploader:
         try:
             file_url = self.build_file_url(dir_codes, row['photo'])
             api_url = f"{self.iface_url}/api/user/face"
+            api_url_delete= f"{self.iface_url}/api/user/{row['id']}/delete"
             row['photo_url']=file_url
-            response = requests.post(api_url, data=row)
-            return response.text
+            response = requests.post(api_url, data=row,timeout=30)
+            response_data=json.loads(response.text)
+            if response_data.get('error') =='create-user-face':
+                return response_data['error']
+            else:
+               try:
+                   response = requests.post(api_url_delete, data=row,timeout=30)
+                   response_data = json.loads(response.text)
+                   response = requests.post(api_url, data=row,timeout=30)
+                   response_data = json.loads(response.text)
+                   return response.text
+               except Exception as e:
+                   core.Core.register_event("UserPhotoUploader",traceback.format_exc())
+
+
+
+
+
+
 
         except Exception as e:
             print(f"Error uploading photo for user {row.get('id')}: {e}")
+            core.Core.register_event("UserPhotoUploader",traceback.format_exc())
             return None
